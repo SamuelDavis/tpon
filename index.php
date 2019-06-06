@@ -80,11 +80,6 @@ class Paragraph implements IteratorAggregate
             return $sentences;
         }, []);
     }
-
-    public function getId(int $chapter, int $i)
-    {
-        return '_' . implode('_', [$chapter, $this->paragraph + 1, $i + 1, $this->page]);
-    }
 }
 
 $files = array_filter(scandir(HTML_DIR), function (string $filename) {
@@ -196,8 +191,10 @@ $paragraphs = array_reduce($files, function (array $paragraphs, string $filename
 <body>
 <?php $chapter = 0 ?>
 <?php $page = 0; ?>
-<?php foreach ($paragraphs as $paragraph): ?>
+<?php $i = 0; ?>
+<?php foreach ($paragraphs as $paragraph): $i++ ?>
     <?php if ($page !== $paragraph->page): $page = $paragraph->page ?>
+        <?php $i = 0 ?>
         <h5><?= $page ?></h5>
     <?php endif; ?>
     <?php if ($paragraph->type === Paragraph::TYPE_CHAPTER): ?>
@@ -209,8 +206,8 @@ $paragraphs = array_reduce($files, function (array $paragraphs, string $filename
         <h3><i><?= $paragraph->text ?></i></h3>
     <?php else: ?>
         <p>
-            <?php foreach ($paragraph as $i => $text): ?>
-                <span id="<?= $paragraph->getId($chapter, $i) ?>"><?= $text ?></span>
+            <?php foreach ($paragraph as $j => $text): ?>
+                <span id="_<?= implode('_', [$page, $i + 1, $j + 1]) ?>"><?= $text ?></span>
             <?php endforeach; ?>
         </p>
     <?php endif; ?>
@@ -223,7 +220,7 @@ $paragraphs = array_reduce($files, function (array $paragraphs, string $filename
       const container = document.createElement('div')
       container.setAttribute('id', id)
       const label = document.createElement('small')
-      label.textContent = [...new Set([from, to].map((id) => id.split('_').pop()))].join(' - ')
+      label.textContent = [...new Set([from, to].map((id) => id.slice(1).split('_').shift()))].join(' - ')
       input = document.createElement('textarea')
       input.addEventListener('blur', function (e) {
         const value = e.target.value.trim()
