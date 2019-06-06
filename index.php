@@ -272,13 +272,53 @@ $paragraphs = array_reduce($files, function (array $paragraphs, string $filename
         injectNoteUI(from.getAttribute('id'), to.getAttribute('id'))
     }
 
+    function injectFromLocalStorage () {
+      for (let id in localStorage) {
+        const [from, to] = id.split('-')
+        if (document.getElementById(from) && document.getElementById(to))
+          injectNoteUI(from, to)
+      }
+    }
+
     window.addEventListener('mouseup', quote)
 
-    for (let id in localStorage) {
-      const [from, to] = id.split('-')
-      if (document.getElementById(from) && document.getElementById(to))
-        injectNoteUI(from, to)
-    }
+    injectFromLocalStorage()
+
+    const importBtn = document.createElement('button')
+    importBtn.textContent = 'Import Notes'
+    importBtn.addEventListener('click', (e) => {
+      const notes = JSON.parse(prompt('Notes JSON', '{}'))
+      if (Object.keys(notes).length)
+        localStorage.clear()
+      for (let key in notes) {
+        if (notes.hasOwnProperty(key))
+          localStorage.setItem(key, notes[key])
+      }
+      injectFromLocalStorage()
+    })
+    document.body.prepend(importBtn)
+
+    const exportBtn = document.createElement('button')
+    exportBtn.textContent = 'Export Notes'
+    exportBtn.addEventListener('click', (e) => {
+      const text = JSON.stringify(localStorage)
+      const textArea = document.createElement('textarea')
+      textArea.value = text
+      document.body.appendChild(textArea)
+      textArea.select()
+
+      try {
+        let successful = document.execCommand('copy')
+        if (!successful) {
+          throw new Error(`Copying text was unsuccessful`)
+        }
+      } catch (err) {
+        console.error('Fallback: Oops, unable to copy', err)
+      }
+
+      document.body.removeChild(textArea)
+    })
+    document.body.prepend(exportBtn)
   })
 </script>
 </body>
