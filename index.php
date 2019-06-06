@@ -216,14 +216,44 @@ $paragraphs = array_reduce($files, function (array $paragraphs, string $filename
     <?php endif; ?>
 <?php endforeach; ?>
 <script type="application/javascript">
-  const divs = document.querySelectorAll('span')
-  for (let i = 0; i < divs.length; i++) {
-    divs[i].addEventListener('click', function (e) {
-      const textarea = document.createElement('textarea')
-      textarea.setAttribute('id', e.target.getAttribute('id') + '_note')
-      e.target.parentNode.insertBefore(textarea, e.target.nextSibling)
+  function injectNoteUI (from, to) {
+    const container = document.createElement('div')
+    const label = document.createElement('label')
+    label.textContent = `${from.getAttribute('id')} - ${to.getAttribute('id')}`
+    const input = document.createElement('textarea')
+    input.addEventListener('blur', function (e) {
+      if (!e.target.value.trim())
+        container.parentNode.removeChild(container)
     })
+
+    container.appendChild(label)
+    container.appendChild(input)
+
+    to.parentNode.insertBefore(container, to.nextSibling)
+    input.focus()
   }
+
+  function quote () {
+    const selection = window.getSelection()
+    const range = selection.rangeCount ? selection.getRangeAt(0) : document.createRange()
+
+    let from = null
+    let to = null
+    const spans = document.getElementsByTagName('span')
+    for (let i = 0; i < spans.length; i++) {
+      if (range.intersectsNode(spans[i]))
+        to = spans[i]
+      if (from === null)
+        from = to
+      if (spans[i] === selection.focusNode)
+        break
+    }
+
+    if (from && to)
+      injectNoteUI(from, to)
+  }
+
+  window.addEventListener('mouseup', quote)
 </script>
 </body>
 </html>
