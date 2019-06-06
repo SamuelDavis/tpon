@@ -22,7 +22,6 @@ class Paragraph implements IteratorAggregate
     const TYPE_SUBHEADER = 'subHeader';
     const TYPE_TEXT = 'text';
 
-    /** @var string */
     public $type;
     public $page;
     public $paragraph;
@@ -38,7 +37,7 @@ class Paragraph implements IteratorAggregate
 
     public function matches(Paragraph $other)
     {
-        return $this->type === $other->type && $this->page === $other->page && $this->paragraph === $other->paragraph;
+        return $this->type === $other->type && $this->paragraph === $other->paragraph;
     }
 
     public function append(Paragraph $paragraph)
@@ -82,6 +81,10 @@ class Paragraph implements IteratorAggregate
         }, []);
     }
 
+    public function getId(int $chapter, int $i)
+    {
+        return implode('.', [$chapter, $this->paragraph + 1, $i + 1, $this->page]);
+    }
 }
 
 $files = array_filter(scandir(HTML_DIR), function (string $filename) {
@@ -97,6 +100,7 @@ $dom = new DOMDocument;
 /** @var Paragraph[] $paragraphs */
 $paragraphs = array_reduce($files, function (array $paragraphs, string $filename) use ($dom) {
     $page = intval(preg_replace('/[^0-9]/', '', $filename));
+    static $paragraph = 0;
 
     $tmp = libxml_use_internal_errors(true);
     $dom->loadHTMLFile(HTML_DIR . $filename);
@@ -107,8 +111,8 @@ $paragraphs = array_reduce($files, function (array $paragraphs, string $filename
     $headerStyles = parseHeaderStyles($styleNode);
 
     $divs = iterator_to_array($dom->getElementsByTagName('div'));
-    return array_reduce($divs, function (array $paragraphs, DOMNode $div) use ($page, $headerStyles) {
-        static $paragraph = 0;
+    return array_reduce($divs, function (array $paragraphs, DOMNode $div) use (&$paragraph, $page, $headerStyles) {
+        static $newPage = true;
         if (is_numeric($div->textContent)) {
             return $paragraphs;
         }
@@ -129,7 +133,12 @@ $paragraphs = array_reduce($files, function (array $paragraphs, string $filename
         $color = end($color);
 
         if ($leftMargin === 84) {
-            $paragraph++;
+            if ($newPage) {
+                $newPage = false;
+                $paragraph = 0;
+            } else {
+                $paragraph++;
+            }
         }
 
         if ($fontSize === 16) {
@@ -165,10 +174,32 @@ $paragraphs = array_reduce($files, function (array $paragraphs, string $filename
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>TPON</title>
+    <style type="text/css">
+        p > span:nth-child(1) {
+            margin-left: 2.5%;
+        }
+
+        span:hover {
+            background-color: lightblue;
+        }
+
+        textarea {
+            display: block;
+            width: 100%;
+        }
+
+        h5 {
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
 <?php $chapter = 0 ?>
+<?php $page = 0; ?>
 <?php foreach ($paragraphs as $paragraph): ?>
+    <?php if ($page !== $paragraph->page): $page = $paragraph->page ?>
+        <h5><?= $page ?></h5>
+    <?php endif; ?>
     <?php if ($paragraph->type === Paragraph::TYPE_CHAPTER): ?>
         <?php $chapter = intval(preg_replace('/[^0-9]/', '', $paragraph->text)) ?>
         <h1><?= $paragraph->text ?></h1>
@@ -179,10 +210,20 @@ $paragraphs = array_reduce($files, function (array $paragraphs, string $filename
     <?php else: ?>
         <p>
             <?php foreach ($paragraph as $i => $text): ?>
-                <span id="<?= implode('.', [$chapter, $paragraph->paragraph + 1, $i + 1]) ?>"><?= $text ?></span>
+                <span id="<?= $paragraph->getId($chapter, $i) ?>"><?= $text ?></span>
             <?php endforeach; ?>
         </p>
     <?php endif; ?>
 <?php endforeach; ?>
+<script type="application/javascript">
+  const divs = document.querySelectorAll('span')
+  for (let i = 0; i < divs.length; i++) {
+    divs[i].addEventListener('click', function (e) {
+      const textarea = document.createElement('textarea')
+      textarea.setAttribute('id', e.target.getAttribute('id') + '_note')
+      e.target.parentNode.insertBefore(textarea, e.target.nextSibling)
+    })
+  }
+</script>
 </body>
 </html>
