@@ -83,7 +83,7 @@ class Paragraph implements IteratorAggregate
 
     public function getId(int $chapter, int $i)
     {
-        return implode('.', [$chapter, $this->paragraph + 1, $i + 1, $this->page]);
+        return '_' . implode('_', [$chapter, $this->paragraph + 1, $i + 1, $this->page]);
     }
 }
 
@@ -217,19 +217,34 @@ $paragraphs = array_reduce($files, function (array $paragraphs, string $filename
 <?php endforeach; ?>
 <script type="application/javascript">
   function injectNoteUI (from, to) {
-    const container = document.createElement('div')
-    const label = document.createElement('label')
-    label.textContent = `${from.getAttribute('id')} - ${to.getAttribute('id')}`
-    const input = document.createElement('textarea')
-    input.addEventListener('blur', function (e) {
-      if (!e.target.value.trim())
-        container.parentNode.removeChild(container)
-    })
+    const id = `${from}__${to}`
+    let input = document.querySelector(`#${id} > input`)
+    if (!input) {
+      const container = document.createElement('div')
+      container.setAttribute('id', id)
+      const label = document.createElement('small')
+      label.textContent = [...new Set([from, to].map((id) => id.split('_').pop()))].join(' - ')
+      input = document.createElement('textarea')
+      input.addEventListener('blur', function (e) {
+        const value = e.target.value.trim()
+        if (!value) {
+          container.parentNode.removeChild(container)
+          localStorage.removeItem(id)
+        } else {
+          localStorage.setItem(id, value)
+        }
+      })
 
-    container.appendChild(label)
-    container.appendChild(input)
+      container.appendChild(label)
+      container.appendChild(input)
 
-    to.parentNode.insertBefore(container, to.nextSibling)
+      const toNode = document.getElementById(to)
+      let sibling = toNode.nextSibling
+      while (sibling && sibling.tagName !== 'SPAN')
+        sibling = sibling.nextSibling
+      toNode.parentNode.insertBefore(container, sibling)
+    }
+
     input.focus()
   }
 
@@ -250,7 +265,7 @@ $paragraphs = array_reduce($files, function (array $paragraphs, string $filename
     }
 
     if (from && to)
-      injectNoteUI(from, to)
+      injectNoteUI(from.getAttribute('id'), to.getAttribute('id'))
   }
 
   window.addEventListener('mouseup', quote)
