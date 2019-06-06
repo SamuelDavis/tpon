@@ -214,7 +214,7 @@ $paragraphs = array_reduce($files, function (array $paragraphs, string $filename
 <?php endforeach; ?>
 <script type="application/javascript">
   function injectNoteUI (from, to) {
-    const id = `${from}__${to}`
+    const id = `${from}-${to}`
     let input = document.querySelector(`#${id} > input`)
     if (!input) {
       const container = document.createElement('div')
