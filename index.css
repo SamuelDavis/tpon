@@ -1,0 +1,21 @@
+p > span:nth-child(1) {
+    margin-left: 2.5%;
+}
+
+h5 {
+    float: right;
+    color: rgba(0, 0, 0, 0.5);
+}
+
+span:hover {
+    background-color: lightblue;
+}
+
+textarea {
+    display: block;
+    width: 100%;
+}
+
+h5 {
+    text-align: center;
+}
